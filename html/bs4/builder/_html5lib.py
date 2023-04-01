@@ -64,7 +64,7 @@ class HTML5TreeBuilder(HTMLTreeBuilder):
 
     def test_fragment_to_document(self, fragment):
         """See `TreeBuilder`."""
-        return '<html><head></head><body>%s</body></html>' % fragment
+        return f'<html><head></head><body>{fragment}</body></html>'
 
 
 class TreeBuilderForHtml5lib(html5lib.treebuilders._base.TreeBuilder):
@@ -117,13 +117,14 @@ class AttrList(object):
         # If this attribute is a multi-valued attribute for this element,
         # turn its value into a list.
         list_attr = HTML5TreeBuilder.cdata_list_attributes
-        if (name in list_attr['*']
-            or (self.element.name in list_attr
-                and name in list_attr[self.element.name])):
-            # A node that is being cloned may have already undergone
-            # this procedure.
-            if not isinstance(value, list):
-                value = whitespace_re.split(value)
+        if (
+            name in list_attr['*']
+            or (
+                self.element.name in list_attr
+                and name in list_attr[self.element.name]
+            )
+        ) and not isinstance(value, list):
+            value = whitespace_re.split(value)
         self.element[name] = value
     def items(self):
         return list(self.attrs.items())
@@ -201,26 +202,26 @@ class Element(html5lib.treebuilders._base.Node):
 
     def setAttributes(self, attributes):
 
-        if attributes is not None and len(attributes) > 0:
+        if attributes is None or len(attributes) <= 0:
+            return
+        converted_attributes = []
+        for name, value in list(attributes.items()):
+            if isinstance(name, tuple):
+                new_name = NamespacedAttribute(*name)
+                del attributes[name]
+                attributes[new_name] = value
 
-            converted_attributes = []
-            for name, value in list(attributes.items()):
-                if isinstance(name, tuple):
-                    new_name = NamespacedAttribute(*name)
-                    del attributes[name]
-                    attributes[new_name] = value
+        self.soup.builder._replace_cdata_list_attribute_values(
+            self.name, attributes)
+        for name, value in list(attributes.items()):
+            self.element[name] = value
 
-            self.soup.builder._replace_cdata_list_attribute_values(
-                self.name, attributes)
-            for name, value in list(attributes.items()):
-                self.element[name] = value
-
-            # The attributes may contain variables that need substitution.
-            # Call set_up_substitutions manually.
-            #
-            # The Tag constructor called this method when the Tag was created,
-            # but we just set/changed the attributes, so call it again.
-            self.soup.builder.set_up_substitutions(self.element)
+        # The attributes may contain variables that need substitution.
+        # Call set_up_substitutions manually.
+        #
+        # The Tag constructor called this method when the Tag was created,
+        # but we just set/changed the attributes, so call it again.
+        self.soup.builder.set_up_substitutions(self.element)
     attributes = property(getAttributes, setAttributes)
 
     def insertText(self, data, insertBefore=None):
@@ -273,10 +274,9 @@ class Element(html5lib.treebuilders._base.Node):
             # Set the first child's previous_element and previous_sibling
             # to elements within the new parent
             first_child = to_append[0]
-            if new_parents_last_descendant:
-                first_child.previous_element = new_parents_last_descendant
-            else:
-                first_child.previous_element = new_parent_element
+            first_child.previous_element = (
+                new_parents_last_descendant or new_parent_element
+            )
             first_child.previous_sibling = new_parents_last_child
             if new_parents_last_descendant:
                 new_parents_last_descendant.next_element = first_child
@@ -315,7 +315,7 @@ class Element(html5lib.treebuilders._base.Node):
         return self.element.contents
 
     def getNameTuple(self):
-        if self.namespace == None:
+        if self.namespace is None:
             return namespaces["html"], self.name
         else:
             return self.namespace, self.name

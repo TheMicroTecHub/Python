@@ -8,7 +8,5 @@ elif s >= 0.7:
     print("C")
 elif s >= 0.6:
     print("D")
-elif s < 0.6:
-    print("F")
 else:
-    print("Score Out of Range")
+    print("F")
