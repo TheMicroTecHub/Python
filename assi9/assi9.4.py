@@ -1,14 +1,14 @@
 fname = input("Enter file:")
 hand = open(fname)
 
-lst = list()
+lst = []
 
 for line in hand:
     if not line.startswith("From:"): continue
     line = line.split()
     lst.append(line[1])
 
-counts = dict()
+counts = {}
 for word in lst:
     counts[word] = counts.get(word,0) + 1
 
