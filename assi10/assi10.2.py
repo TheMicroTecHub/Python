@@ -1,6 +1,6 @@
 name = input("Enter file:")
 handle = open(name)
-dic = dict()
+dic = {}
 for line in handle:
     if "From:" in line:
         continue
@@ -10,8 +10,6 @@ for line in handle:
         dic[hour] = dic.get(hour,0)+1
 
 data =sorted([(v,k) for k,v in dic.items()],reverse=True)
-lst =list()
-for a,b in data:
-    lst.append([b,a])
+lst = [[b,a] for a, b in data]
 for a,b in sorted(lst):
     print(a,b)
